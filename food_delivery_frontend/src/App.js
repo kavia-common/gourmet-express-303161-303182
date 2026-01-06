@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import "./App.css";
 import { AuthProvider } from "./auth/AuthContext";
+import { CartProvider } from "./customer/CartContext";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppShell } from "./layout/AppShell";
 import { Landing } from "./pages/Landing";
@@ -35,58 +36,60 @@ function App() {
   return (
     <div className="App">
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
+        <CartProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-            {/* Protected app shell */}
-            <Route element={<ProtectedRoute />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<Landing />} />
+              {/* Protected app shell */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<AppShell />}>
+                  <Route path="/" element={<Landing />} />
 
-                {/* Customer */}
-                <Route element={<ProtectedRoute allowedRoles={["customer", "admin"]} />}>
-                  <Route path="/customer/browse" element={<CustomerBrowsePage />} />
-                  <Route path="/customer/cart" element={<CustomerCartPage />} />
-                  <Route path="/customer/orders" element={<CustomerOrdersPage />} />
-                </Route>
+                  {/* Customer */}
+                  <Route element={<ProtectedRoute allowedRoles={["customer", "admin"]} />}>
+                    <Route path="/customer/browse" element={<CustomerBrowsePage />} />
+                    <Route path="/customer/cart" element={<CustomerCartPage />} />
+                    <Route path="/customer/orders" element={<CustomerOrdersPage />} />
+                  </Route>
 
-                {/* Restaurant */}
-                <Route element={<ProtectedRoute allowedRoles={["restaurant_owner", "admin"]} />}>
-                  <Route path="/restaurant/menu" element={<RestaurantMenuManagementPage />} />
-                  <Route path="/restaurant/orders" element={<RestaurantOrdersPage />} />
-                </Route>
+                  {/* Restaurant */}
+                  <Route element={<ProtectedRoute allowedRoles={["restaurant_owner", "admin"]} />}>
+                    <Route path="/restaurant/menu" element={<RestaurantMenuManagementPage />} />
+                    <Route path="/restaurant/orders" element={<RestaurantOrdersPage />} />
+                  </Route>
 
-                {/* Courier */}
-                <Route element={<ProtectedRoute allowedRoles={["courier", "admin"]} />}>
-                  <Route path="/courier/assignments" element={<CourierAssignmentsPage />} />
+                  {/* Courier */}
+                  <Route element={<ProtectedRoute allowedRoles={["courier", "admin"]} />}>
+                    <Route path="/courier/assignments" element={<CourierAssignmentsPage />} />
+                  </Route>
                 </Route>
               </Route>
-            </Route>
 
-            {/* Fallback: let auth decide */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Fallback: let auth decide */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
 
-          {/* Optional theme toggle (kept small and out of the way) */}
-          <button
-            className="ui-btn ui-btnGhost"
-            onClick={toggleTheme}
-            style={{
-              position: "fixed",
-              right: 14,
-              bottom: 14,
-              zIndex: 50
-            }}
-            aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
-            title="Toggle theme"
-          >
-            {theme === "light" ? "Dark" : "Light"}
-          </button>
-        </BrowserRouter>
+            {/* Optional theme toggle (kept small and out of the way) */}
+            <button
+              className="ui-btn ui-btnGhost"
+              onClick={toggleTheme}
+              style={{
+                position: "fixed",
+                right: 14,
+                bottom: 14,
+                zIndex: 50
+              }}
+              aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+              title="Toggle theme"
+            >
+              {theme === "light" ? "Dark" : "Light"}
+            </button>
+          </BrowserRouter>
+        </CartProvider>
       </AuthProvider>
     </div>
   );

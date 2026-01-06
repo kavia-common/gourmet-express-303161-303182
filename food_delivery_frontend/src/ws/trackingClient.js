@@ -1,39 +1,34 @@
 /**
  * WebSocket client helper for order tracking.
  *
- * Backend provides a streaming endpoint (see backend /docs/realtime):
- *   ws://<backend-host>/tracking/stream
+ * Backend:
+ * - WebSocket endpoint:  ws(s)://<backend-host>/tracking/stream
  *
- * This utility is intentionally generic for later integration:
- * - Connects with optional token (sent via query param for compatibility)
- * - Provides onMessage and lifecycle callbacks
+ * Protocol (lightweight):
+ * - Client connects and then sends a JSON message to subscribe:
+ *     { "action": "subscribe", "order_id": "<uuid>" }
+ * - Server publishes tracking events for subscribed order as JSON objects.
  *
  * Env:
- * - REACT_APP_WS_URL (preferred) e.g. ws://localhost:3001/tracking/stream
+ * - REACT_APP_WS_URL (preferred) e.g. ws://localhost:3001  or ws://localhost:3001/tracking/stream
  * - REACT_APP_BACKEND_URL / REACT_APP_API_BASE (http/https) will be converted to ws/wss
  */
 
 function deriveWsUrl() {
   const explicit = process.env.REACT_APP_WS_URL;
   if (explicit) {
-    // Allow either:
-    // - full URL: ws://host:port/tracking/stream
-    // - base URL: ws://host:port  (we'll append /tracking/stream)
     if (explicit.includes("/tracking/stream")) return explicit;
     return `${explicit.replace(/\/$/, "")}/tracking/stream`;
   }
 
   const base = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_BASE;
   if (base) {
-    // Accept either http(s) or ws(s) and normalize to ws(s).
     let wsBase = base;
     if (wsBase.startsWith("https://")) wsBase = wsBase.replace("https://", "wss://");
     else if (wsBase.startsWith("http://")) wsBase = wsBase.replace("http://", "ws://");
-    // If already ws:// or wss://, keep as-is.
     return `${wsBase.replace(/\/$/, "")}/tracking/stream`;
   }
 
-  // Default: backend on port 3001.
   return "ws://localhost:3001/tracking/stream";
 }
 
@@ -49,7 +44,7 @@ export const TRACKING_WS_URL = deriveWsUrl();
  * @param {() => void} params.onOpen Open handler.
  * @param {(event: CloseEvent) => void} params.onClose Close handler.
  * @param {(event: Event) => void} params.onError Error handler.
- * @returns {{ socket: WebSocket, close: () => void }}
+ * @returns {{ socket: WebSocket, close: () => void, subscribeToOrder: (orderId: string) => void }}
  */
 export function createTrackingSocket({
   token = null,
@@ -66,8 +61,17 @@ export function createTrackingSocket({
   socket.onclose = onClose;
   socket.onerror = onError;
 
+  function subscribeToOrder(orderId) {
+    try {
+      socket.send(JSON.stringify({ action: "subscribe", order_id: orderId }));
+    } catch {
+      // ignore (socket not ready or closed)
+    }
+  }
+
   return {
     socket,
+    subscribeToOrder,
     close: () => {
       try {
         socket.close();
@@ -77,3 +81,4 @@ export function createTrackingSocket({
     }
   };
 }
+
