@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
-import { createTrackingSocket } from "../../ws/trackingClient";
+import { createTrackingSocketForOrder } from "../../ws/trackingClient";
 import { getOrderApi, listMyOrdersApi, listTrackingEventsApi } from "../../api/customer";
 import { formatMoney, statusLabel } from "../../customer/format";
 
@@ -121,11 +121,10 @@ export function CustomerOrdersPage() {
     run();
   }, [selectedOrderId, getToken]);
 
-  // WebSocket: connect once and re-subscribe whenever order selection changes.
+  // WebSocket: backend requires order_id in the WS path, so we connect per selected order.
   useEffect(() => {
     if (!token) return;
 
-    // Always reset any existing socket on mount/cleanup
     function cleanup() {
       try {
         socketRef.current?.close?.();
@@ -137,7 +136,13 @@ export function CustomerOrdersPage() {
 
     cleanup();
 
-    const client = createTrackingSocket({
+    if (!selectedOrderId) {
+      setWsState({ status: "disconnected", lastMessageAt: null, error: "" });
+      return () => cleanup();
+    }
+
+    const client = createTrackingSocketForOrder({
+      orderId: selectedOrderId,
       token,
       onOpen: () => setWsState({ status: "connected", lastMessageAt: null, error: "" }),
       onClose: () => setWsState((p) => ({ ...p, status: "disconnected" })),
@@ -146,18 +151,21 @@ export function CustomerOrdersPage() {
         setWsState((p) => ({ ...p, lastMessageAt: new Date().toISOString() }));
         try {
           const msg = JSON.parse(event.data);
-          // Backend is expected to send tracking events as objects.
-          if (msg && typeof msg === "object" && (msg.order_id || msg.status)) {
+
+          // Backend sends either:
+          // - { type: "connected", payload: {...} }
+          // - { type: "tracking_event", payload: { ...TrackingEventOut... } }
+          if (msg && typeof msg === "object" && msg.type === "tracking_event" && msg.payload) {
+            const ev = msg.payload;
             setEvents((prev) => {
-              // Basic de-dup by id when available.
-              if (msg.id && prev.some((x) => x.id === msg.id)) return prev;
-              const next = [...prev, msg];
+              if (ev.id && prev.some((x) => x.id === ev.id)) return prev;
+              const next = [...prev, ev];
               next.sort((a, b) => (a.created_at > b.created_at ? 1 : -1));
               return next;
             });
           }
         } catch {
-          // ignore non-json
+          // ignore non-json / unexpected payloads
         }
       }
     });
@@ -165,16 +173,7 @@ export function CustomerOrdersPage() {
     socketRef.current = client;
 
     return () => cleanup();
-  }, [token]);
-
-  // Subscribe when order changes and socket is present.
-  useEffect(() => {
-    if (!selectedOrderId) return;
-    if (!socketRef.current?.subscribeToOrder) return;
-
-    // If socket isn't open yet, we still try (server may queue); harmless if it fails.
-    socketRef.current.subscribeToOrder(selectedOrderId);
-  }, [selectedOrderId, wsState.status]);
+  }, [token, selectedOrderId]);
 
   function selectOrder(orderId) {
     const next = new URLSearchParams(searchParams);
