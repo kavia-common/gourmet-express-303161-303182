@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
@@ -7,7 +7,7 @@ import { useAuth } from "../auth/AuthContext";
  * Login page.
  */
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, token, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,6 +16,12 @@ export function LoginPage() {
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // If already logged in, send to landing which will route by role.
+  useEffect(() => {
+    if (loading) return;
+    if (token) navigate("/", { replace: true });
+  }, [loading, token, navigate]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -43,7 +49,11 @@ export function LoginPage() {
           <span className="ui-badge">JWT Session</span>
         </div>
 
-        {error ? <div className="ui-alert" role="alert">{error}</div> : null}
+        {error ? (
+          <div className="ui-alert" role="alert">
+            {error}
+          </div>
+        ) : null}
 
         <form className="ui-form" onSubmit={onSubmit}>
           <div>

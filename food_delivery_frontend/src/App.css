@@ -216,6 +216,12 @@ a { color: inherit; }
   gap: 10px;
 }
 
+/* Slightly tighter ghost button variant for topbar actions */
+.ui-topbarRight .ui-btn.ui-btnGhost {
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
 .ui-btn {
   border: 1px solid var(--border);
   background: var(--surface);

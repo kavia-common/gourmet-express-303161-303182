@@ -29,34 +29,41 @@ export function AppShell() {
 
   const activeRole = useMemo(() => firstRole(roles || []), [roles]);
 
-  const navItems = useMemo(() => {
-    const items = [];
+  const navGroups = useMemo(() => {
+    const groups = [];
 
     // Customer
-    if (roles?.includes("customer")) {
-      items.push(
-        { group: "Customer", to: "/customer/browse", label: "Browse", icon: icon("B") },
-        { group: "Customer", to: "/customer/cart", label: "Cart / Checkout", icon: icon("C") },
-        { group: "Customer", to: "/customer/orders", label: "Orders / Tracker", icon: icon("O") }
-      );
+    if (roles?.includes("customer") || roles?.includes("admin")) {
+      groups.push({
+        title: "Customer",
+        items: [
+          { to: "/customer/browse", label: "Browse", icon: icon("B") },
+          { to: "/customer/cart", label: "Cart / Checkout", icon: icon("C") },
+          { to: "/customer/orders", label: "Orders / Tracker", icon: icon("O") }
+        ]
+      });
     }
 
     // Restaurant
     if (roles?.includes("restaurant_owner") || roles?.includes("admin")) {
-      items.push(
-        { group: "Restaurant", to: "/restaurant/menu", label: "Menu Management", icon: icon("M") },
-        { group: "Restaurant", to: "/restaurant/orders", label: "Orders", icon: icon("R") }
-      );
+      groups.push({
+        title: "Restaurant",
+        items: [
+          { to: "/restaurant/menu", label: "Menu Management", icon: icon("M") },
+          { to: "/restaurant/orders", label: "Orders", icon: icon("R") }
+        ]
+      });
     }
 
     // Courier
     if (roles?.includes("courier") || roles?.includes("admin")) {
-      items.push(
-        { group: "Courier", to: "/courier/assignments", label: "Assignments / Queue", icon: icon("Q") }
-      );
+      groups.push({
+        title: "Courier",
+        items: [{ to: "/courier/assignments", label: "Assignments / Queue", icon: icon("Q") }]
+      });
     }
 
-    return items;
+    return groups;
   }, [roles]);
 
   const title = useMemo(() => {
@@ -90,21 +97,37 @@ export function AppShell() {
           </div>
         </div>
 
-        <div className="ui-navGroupTitle">Navigation</div>
-        <nav className="ui-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => `ui-navLink ${isActive ? "ui-navLinkActive" : ""}`}
-            >
-              <span className="ui-navIcon" aria-hidden="true">
-                {item.icon}
-              </span>
-              <span style={{ fontWeight: 800 }}>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        {navGroups.length === 0 ? (
+          <div className="ui-card" style={{ padding: 12 }}>
+            <p className="ui-help" style={{ margin: 0 }}>
+              No role navigation is available for this account.
+            </p>
+            <p className="ui-help" style={{ margin: "8px 0 0 0" }}>
+              If you expected access, ask an admin to attach roles (e.g. <code>customer</code>,{" "}
+              <code>restaurant_owner</code>, <code>courier</code>).
+            </p>
+          </div>
+        ) : (
+          navGroups.map((group) => (
+            <div key={group.title}>
+              <div className="ui-navGroupTitle">{group.title}</div>
+              <nav className="ui-nav" aria-label={`${group.title} navigation`}>
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) => `ui-navLink ${isActive ? "ui-navLinkActive" : ""}`}
+                  >
+                    <span className="ui-navIcon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                    <span style={{ fontWeight: 800 }}>{item.label}</span>
+                  </NavLink>
+                ))}
+              </nav>
+            </div>
+          ))
+        )}
 
         <div className="ui-navGroupTitle">Session</div>
         <button
@@ -136,10 +159,22 @@ export function AppShell() {
               {rolePillText()}
             </span>
           </div>
+
           <div className="ui-topbarRight">
             <span className="ui-badge" title="Signed in user">
               {user?.email || "Unknown user"}
             </span>
+            <button
+              className="ui-btn ui-btnGhost"
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+              title="Sign out"
+              aria-label="Logout"
+            >
+              Logout
+            </button>
           </div>
         </header>
 
