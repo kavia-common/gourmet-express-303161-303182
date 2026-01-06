@@ -67,8 +67,8 @@ function App() {
               </Route>
             </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
+            {/* Fallback: let auth decide */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 
           {/* Optional theme toggle (kept small and out of the way) */}

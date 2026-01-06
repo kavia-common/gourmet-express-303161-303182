@@ -15,16 +15,25 @@
 
 function deriveWsUrl() {
   const explicit = process.env.REACT_APP_WS_URL;
-  if (explicit) return explicit;
+  if (explicit) {
+    // Allow either:
+    // - full URL: ws://host:port/tracking/stream
+    // - base URL: ws://host:port  (we'll append /tracking/stream)
+    if (explicit.includes("/tracking/stream")) return explicit;
+    return `${explicit.replace(/\/$/, "")}/tracking/stream`;
+  }
 
-  const httpBase = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_BASE;
-  if (httpBase) {
-    const wsBase = httpBase.startsWith("https://")
-      ? httpBase.replace("https://", "wss://")
-      : httpBase.replace("http://", "ws://");
+  const base = process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_API_BASE;
+  if (base) {
+    // Accept either http(s) or ws(s) and normalize to ws(s).
+    let wsBase = base;
+    if (wsBase.startsWith("https://")) wsBase = wsBase.replace("https://", "wss://");
+    else if (wsBase.startsWith("http://")) wsBase = wsBase.replace("http://", "ws://");
+    // If already ws:// or wss://, keep as-is.
     return `${wsBase.replace(/\/$/, "")}/tracking/stream`;
   }
 
+  // Default: backend on port 3001.
   return "ws://localhost:3001/tracking/stream";
 }
 
